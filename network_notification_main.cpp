@@ -33,7 +33,8 @@
 
 using namespace std;
 
-class listener_handler1 : public _unnamed::system::network::listener_handler,
+class listener_handler1:
+    public _unnamed::system::network::listener_handler,
     public _unnamed::system::network::listener_handler_notifier {
 private:
     static const std::string _listener_handler_name;
@@ -56,9 +57,9 @@ public:
 };
 const std::string listener_handler1::_listener_handler_name{ "method1" };
 
-class listener_handler2
-    : public _unnamed::system::network::listener_handler,
-      public _unnamed::system::network::listener_handler_notifier {
+class listener_handler2:
+    public _unnamed::system::network::listener_handler,
+    public _unnamed::system::network::listener_handler_notifier {
 private:
     static const std::string _listener_handler_name;
 public:

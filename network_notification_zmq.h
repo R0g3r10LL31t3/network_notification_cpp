@@ -36,8 +36,10 @@ namespace system {
 namespace network {
 
 class listener_handler_notifier;
+class zmq_publisher_handler_notifier;
 class listener_handler;
 class listener;
+class zmq_publisher;
 class subject;
 
 namespace t {
@@ -50,11 +52,36 @@ using socket = zmq::socket_t;
 using context = zmq::context_t;
 using const_buffer = zmq::const_buffer;
 
+/**
+ * Mutable and imutable smart shared pointers to objects
+ * Mutable objects can be modifiyed
+ * Imutable objects can not be modifiyed, but const methods can be invoked
+ */
 using socket_i = std::unique_ptr<const socket>;
 using socket_m = std::unique_ptr<socket>;
 
 using context_i = std::shared_ptr<const context>;
 using context_m = std::shared_ptr<context>;
+
+using zmq_publisher_handler_notifier_i = std::shared_ptr<const zmq_publisher_handler_notifier>;
+using zmq_publisher_handler_notifier_m = std::shared_ptr<const zmq_publisher_handler_notifier>;
+
+using zmq_publisher_i = std::shared_ptr<const zmq_publisher>;
+using zmq_publisher_m = std::shared_ptr<const zmq_publisher>;
+
+/**
+ * Constant mutable and imutable pointers to objects
+ * Mutable objects can be modifiyed
+ * Imutable objects can not be modifiyed, but const methods can be invoked
+ */
+//using zmq_publisher_handler_iptr = zmq_publisher_handler* const;
+//using zmq_publisher_handler_mptr = zmq_publisher_handler*;
+
+using zmq_publisher_iptr = zmq_publisher* const;
+using zmq_publisher_mptr = zmq_publisher*;
+
+//using subject_iptr = subject* const;
+//using subject_mptr = subject*;
 } //t
 
 namespace exception {
@@ -73,7 +100,27 @@ namespace exception {
 					EXCEPTION("zmq_publisher_exception: " reason)
 }
 
-class zmq_publisher : public listener {
+class zmq_publisher_handler_notifier :
+    public listener_handler_notifier {
+private:
+    void set_listener(t::listener_mptr listener) = delete;
+
+    t::listener_mptr get_listener() const = delete;
+public:
+    zmq_publisher_handler_notifier() = default;
+
+    ~zmq_publisher_handler_notifier() = default;
+
+    void set_publisher(t::zmq_publisher_mptr publisher) {
+        listener_handler_notifier::set_listener(reinterpret_cast<t::listener_mptr>(publisher));
+    };
+
+    t::zmq_publisher_mptr get_publisher() const {
+        return reinterpret_cast<t::zmq_publisher_mptr>(listener_handler_notifier::get_listener());
+    }
+};
+
+class zmq_publisher: public listener {
 private:
     using listener::listener;
 
@@ -115,6 +162,8 @@ public:
     void disconnect(std::string const& url);
 
     void send(const t::const_buffer& topic, const t::const_buffer& data);
+
+    //bool notify(const t::zmq_publisher_handler_notifier_m& zmq_publisher_handler_notifier);
 };
 } //network
 } //system

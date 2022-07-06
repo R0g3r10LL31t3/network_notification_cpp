@@ -59,7 +59,7 @@ using subject_i = std::shared_ptr<const subject>;
 using subject_m = std::shared_ptr<subject>;
 
 /**
- * Constant Mutable and imutable pointers to objects
+ * Constant mutable and imutable pointers to objects
  * Mutable objects can be modifiyed
  * Imutable objects can not be modifiyed, but const methods can be invoked
  */
@@ -121,7 +121,7 @@ public:
     virtual const std::string& get_listener_handler_name() const = 0;
 
     template <typename lambda_function>
-    bool notify(const lambda_function& function) const {
+    bool notify(const lambda_function& function) {
         return function(this);
     }
 
@@ -146,13 +146,13 @@ public:
     void rem_listener_handler(const t::listener_handler_m& listener_handler);
 
     template <typename lambda_function>
-    bool notify(const std::string& listener_handler_name, const lambda_function& function) const {
+    bool notify(const std::string& listener_handler_name, const lambda_function& function) {
         bool notified_ = false;
 
         auto listener_handler_it_ = this->_listener_handlers_table.find(listener_handler_name);
         if (listener_handler_it_ != this->_listener_handlers_table.end()) {
             const t::listener_handler_m& listener_handler_ = (*listener_handler_it_).second;
-            auto newFunction_ = [this, &function](const listener_handler* listener_handler) {
+            auto newFunction_ = [this, &function](t::listener_handler_mptr listener_handler) {
                 return function(this, listener_handler);
             };
             notified_ = listener_handler_->notify(newFunction_);
@@ -197,7 +197,8 @@ public:
 
         for (const auto& listener_pair_ : this->_listeners) {
             const t::listener_m& listener_ = listener_pair_.second;
-            auto newFunction_ = [this, &function](const listener* listener, const listener_handler* listener_handler) {
+            auto newFunction_ = [this, &function](
+            t::listener_mptr listener, t::listener_handler_mptr listener_handler) {
                 return function(this, listener, listener_handler);
             };
             if (!listener_->notify(listener_handler_name, newFunction_)) {
