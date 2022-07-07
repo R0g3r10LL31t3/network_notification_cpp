@@ -1,7 +1,7 @@
 /**
 * MIT License
 *
-* Copyright(c) 2022 RogÈrio Lecari„o Leite, Brazil.
+* Copyright(c) 2022 Rog√©rio Lecari√£o Leite, Brazil.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this softwareand associated documentation files(the "Software"), to deal
@@ -153,8 +153,6 @@ public:
     void disconnect(std::string const& url);
 
     void send(const t::const_buffer& topic, const t::const_buffer& data);
-
-    //bool notify(const t::zmq_publisher_handler_notifier_m& zmq_publisher_handler_notifier);
 };
 } //network
 } //system
