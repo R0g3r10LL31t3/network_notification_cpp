@@ -30,121 +30,121 @@
 #include <iostream>
 #include <chrono>
 
-#include "network_announcer.h"
+#include "network_publisher.h"
 
 using namespace std;
 
-class announcer_handler1:
-    public _unnamed::system::network::announcer_handler,
-    public _unnamed::system::network::announcer_handler_notifier {
+class publisher_handler1:
+    public _unnamed::system::network::publisher_handler,
+    public _unnamed::system::network::publisher_handler_sender {
 private:
     static const std::string _named_id;
 public:
-    announcer_handler1() = default;
+    publisher_handler1() = default;
 
-    ~announcer_handler1() = default;
+    ~publisher_handler1() = default;
 
     virtual const std::string& get_named_id() const override {
         return _named_id;
     }
 
-    virtual bool do_notify() override {
-        cout << "announcer_handler1::invoke?" <<
-             get_announcer_controller()->get_named_id() << ":" <<
-             get_announcer()->get_named_id() << ":" <<
-             get_announcer_handler()->get_named_id() << endl;
+    virtual bool do_publish() override {
+        cout << "publisher_handler1::invoke?" <<
+             get_publisher_controller()->get_named_id() << ":" <<
+             get_publisher()->get_named_id() << ":" <<
+             get_publisher_handler()->get_named_id() << endl;
         return true;
     }
 };
-const std::string announcer_handler1::_named_id{ "method1" };
+const std::string publisher_handler1::_named_id{ "method1" };
 
-class announcer_handler2:
-    public _unnamed::system::network::announcer_handler,
-    public _unnamed::system::network::announcer_handler_notifier {
+class publisher_handler2:
+    public _unnamed::system::network::publisher_handler,
+    public _unnamed::system::network::publisher_handler_sender {
 private:
     static const std::string _named_id;
 public:
-    announcer_handler2() = default;
+    publisher_handler2() = default;
 
-    ~announcer_handler2() = default;
+    ~publisher_handler2() = default;
 
     virtual const std::string& get_named_id() const override {
         return _named_id;
     }
 
-    virtual bool do_notify() override {
-        cout << "announcer_handler2::invoke?" <<
-             get_announcer_controller()->get_named_id() << ":" <<
-             get_announcer()->get_named_id() << ":" <<
-             get_announcer_handler()->get_named_id() << endl;
+    virtual bool do_publish() override {
+        cout << "publisher_handler2::invoke?" <<
+             get_publisher_controller()->get_named_id() << ":" <<
+             get_publisher()->get_named_id() << ":" <<
+             get_publisher_handler()->get_named_id() << endl;
         return true;
     }
 };
-const std::string announcer_handler2::_named_id{ "method2" };
+const std::string publisher_handler2::_named_id{ "method2" };
 
 int main(int argc, const char** argv) {
-    auto announcer_controller_ = std::make_unique<_unnamed::system::network::announcer_controller>("announcer_controller[localhost]");
-    auto announcer1_ = std::make_shared<_unnamed::system::network::announcer>("localhost:8001");
-    auto announcer2_ = std::make_shared<_unnamed::system::network::announcer>("localhost:8002");
-    auto announcer3_ = std::make_shared<_unnamed::system::network::announcer>("localhost:8003");
-    auto announcer4_ = std::make_shared<_unnamed::system::network::announcer>("localhost:8004");
+    auto publisher_controller_ = std::make_unique<_unnamed::system::network::publisher_controller>("publisher_controller[localhost]");
+    auto publisher1_ = std::make_shared<_unnamed::system::network::publisher>("localhost:8001");
+    auto publisher2_ = std::make_shared<_unnamed::system::network::publisher>("localhost:8002");
+    auto publisher3_ = std::make_shared<_unnamed::system::network::publisher>("localhost:8003");
+    auto publisher4_ = std::make_shared<_unnamed::system::network::publisher>("localhost:8004");
 
-    announcer_controller_->add_announcer(announcer1_);
-    announcer_controller_->rem_announcer(announcer1_);
-    announcer_controller_->add_announcer(announcer1_);
-    announcer_controller_->add_announcer(announcer2_);
-    announcer_controller_->add_announcer(announcer3_);
-    announcer_controller_->add_announcer(announcer4_);
+    publisher_controller_->add_publisher(publisher1_);
+    publisher_controller_->rem_publisher(publisher1_);
+    publisher_controller_->add_publisher(publisher1_);
+    publisher_controller_->add_publisher(publisher2_);
+    publisher_controller_->add_publisher(publisher3_);
+    publisher_controller_->add_publisher(publisher4_);
 
-    const _unnamed::system::network::t::announcer_table_m& announcer_adresses_ = announcer_controller_->get_announcers();
+    const _unnamed::system::network::t::publisher_table_m& publisher_adresses_ = publisher_controller_->get_publishers();
 
-    std::shared_ptr<announcer_handler1> announcer_handler1_ = std::make_shared<announcer_handler1>();
-    std::shared_ptr<announcer_handler2> announcer_handler2_ = std::make_shared<announcer_handler2>();
+    std::shared_ptr<publisher_handler1> publisher_handler1_ = std::make_shared<publisher_handler1>();
+    std::shared_ptr<publisher_handler2> publisher_handler2_ = std::make_shared<publisher_handler2>();
 
-    for (const auto& announcer_pair_ : announcer_adresses_) {
-        const std::shared_ptr<_unnamed::system::network::announcer>& announcer = announcer_pair_.second;
+    for (const auto& publisher_pair_ : publisher_adresses_) {
+        const std::shared_ptr<_unnamed::system::network::publisher>& publisher = publisher_pair_.second;
 
-        announcer->add_announcer_handler(announcer_handler1_);
-        announcer->add_announcer_handler(announcer_handler2_);
+        publisher->add_publisher_handler(publisher_handler1_);
+        publisher->add_publisher_handler(publisher_handler2_);
     }
 
-    announcer_controller_->notify_all(announcer_handler1_);
-    announcer_controller_->notify_all(announcer_handler2_);
+    publisher_controller_->publish_all(publisher_handler1_);
+    publisher_controller_->publish_all(publisher_handler2_);
 
-    announcer_controller_->notify_all(announcer_handler1_->get_named_id(),
-                                      [](_unnamed::system::network::announcer_controller const* announcer_controller,
-                                         _unnamed::system::network::announcer const* announcer,
-    _unnamed::system::network::announcer_handler const* announcer_handler) {
-        cout << "announcer_handler1::invoke?" <<
-             announcer_controller->get_named_id() << ":" <<
-             announcer->get_named_id() << ":" <<
-             announcer_handler->get_named_id() << endl;
+    publisher_controller_->publish_all(publisher_handler1_->get_named_id(),
+                                       [](_unnamed::system::network::publisher_controller const* publisher_controller,
+                                          _unnamed::system::network::publisher const* publisher,
+    _unnamed::system::network::publisher_handler const* publisher_handler) {
+        cout << "publisher_handler1::invoke?" <<
+             publisher_controller->get_named_id() << ":" <<
+             publisher->get_named_id() << ":" <<
+             publisher_handler->get_named_id() << endl;
         return true;
     });
-    announcer_controller_->notify_all(announcer_handler2_->get_named_id(),
-                                      [](const _unnamed::system::network::announcer_controller* announcer_controller,
-                                         const _unnamed::system::network::announcer* announcer,
-    const _unnamed::system::network::announcer_handler* announcer_handler) {
-        cout << "announcer_handler2::invoke?" <<
-             announcer_controller->get_named_id() << ":" <<
-             announcer->get_named_id() << ":" <<
-             announcer_handler->get_named_id() << endl;
+    publisher_controller_->publish_all(publisher_handler2_->get_named_id(),
+                                       [](const _unnamed::system::network::publisher_controller* publisher_controller,
+                                          const _unnamed::system::network::publisher* publisher,
+    const _unnamed::system::network::publisher_handler* publisher_handler) {
+        cout << "publisher_handler2::invoke?" <<
+             publisher_controller->get_named_id() << ":" <<
+             publisher->get_named_id() << ":" <<
+             publisher_handler->get_named_id() << endl;
         return false;
     });
 
-    _unnamed::system::network::t::announcer_list_i announcers_faileds_ = announcer_controller_->get_announcers_faileds();
+    _unnamed::system::network::t::publisher_list_i publishers_faileds_ = publisher_controller_->get_publishers_faileds();
 
-    for (const auto& announcer_failed_ : announcers_faileds_)	{
-        cout << "announcer_failed_: " << announcer_failed_->get_named_id() << endl;
+    for (const auto& publisher_failed_ : publishers_faileds_)	{
+        cout << "publisher_failed_: " << publisher_failed_->get_named_id() << endl;
     }
 
-    cout << "announcer1: " << announcer1_.use_count() << endl;
-    cout << "announcer2: " << announcer2_.use_count() << endl;
-    cout << "announcer3: " << announcer3_.use_count() << endl;
-    cout << "announcer4: " << announcer4_.use_count() << endl;
+    cout << "publisher1: " << publisher1_.use_count() << endl;
+    cout << "publisher2: " << publisher2_.use_count() << endl;
+    cout << "publisher3: " << publisher3_.use_count() << endl;
+    cout << "publisher4: " << publisher4_.use_count() << endl;
 
-    cout << "announcer_handler1_: " << announcer_handler1_.use_count() << endl;
-    cout << "announcer_handler2_: " << announcer_handler2_.use_count() << endl;
+    cout << "publisher_handler1_: " << publisher_handler1_.use_count() << endl;
+    cout << "publisher_handler2_: " << publisher_handler2_.use_count() << endl;
 
     return 0;
 }
