@@ -28,122 +28,123 @@
 
 #include <string>
 #include <iostream>
+#include <chrono>
 
-#include "network_notification.h"
+#include "network_announcer.h"
 
 using namespace std;
 
-class listener_handler1:
-    public _unnamed::system::network::listener_handler,
-    public _unnamed::system::network::listener_handler_notifier {
+class announcer_handler1:
+    public _unnamed::system::network::announcer_handler,
+    public _unnamed::system::network::announcer_handler_notifier {
 private:
-    static const std::string _listener_handler_name;
+    static const std::string _named_id;
 public:
-    listener_handler1() = default;
+    announcer_handler1() = default;
 
-    ~listener_handler1() = default;
+    ~announcer_handler1() = default;
 
-    virtual const std::string& get_listener_handler_name() const override {
-        return _listener_handler_name;
+    virtual const std::string& get_named_id() const override {
+        return _named_id;
     }
 
     virtual bool do_notify() override {
-        cout << "listener_handler1::invoke?" <<
-             (get_subject()) << ":" <<
-             get_listener()->get_named_id() << ":" <<
-             get_listener_handler()->get_listener_handler_name() << endl;
+        cout << "announcer_handler1::invoke?" <<
+             get_announcer_controller()->get_named_id() << ":" <<
+             get_announcer()->get_named_id() << ":" <<
+             get_announcer_handler()->get_named_id() << endl;
         return true;
     }
 };
-const std::string listener_handler1::_listener_handler_name{ "method1" };
+const std::string announcer_handler1::_named_id{ "method1" };
 
-class listener_handler2:
-    public _unnamed::system::network::listener_handler,
-    public _unnamed::system::network::listener_handler_notifier {
+class announcer_handler2:
+    public _unnamed::system::network::announcer_handler,
+    public _unnamed::system::network::announcer_handler_notifier {
 private:
-    static const std::string _listener_handler_name;
+    static const std::string _named_id;
 public:
-    listener_handler2() = default;
+    announcer_handler2() = default;
 
-    ~listener_handler2() = default;
+    ~announcer_handler2() = default;
 
-    virtual const std::string& get_listener_handler_name() const override {
-        return _listener_handler_name;
+    virtual const std::string& get_named_id() const override {
+        return _named_id;
     }
 
     virtual bool do_notify() override {
-        cout << "listener_handler2::invoke?" <<
-             (get_subject()) << ":" <<
-             get_listener()->get_named_id() << ":" <<
-             get_listener_handler()->get_listener_handler_name() << endl;
+        cout << "announcer_handler2::invoke?" <<
+             get_announcer_controller()->get_named_id() << ":" <<
+             get_announcer()->get_named_id() << ":" <<
+             get_announcer_handler()->get_named_id() << endl;
         return true;
     }
 };
-const std::string listener_handler2::_listener_handler_name{ "method2" };
+const std::string announcer_handler2::_named_id{ "method2" };
 
 int main(int argc, const char** argv) {
-    auto subject_ = std::make_unique<_unnamed::system::network::subject>("localhost", "8000");
-    auto listener1_ = std::make_shared<_unnamed::system::network::listener>("localhost:8001");
-    auto listener2_ = std::make_shared<_unnamed::system::network::listener>("localhost:8002");
-    auto listener3_ = std::make_shared<_unnamed::system::network::listener>("localhost:8003");
-    auto listener4_ = std::make_shared<_unnamed::system::network::listener>("localhost:8004");
+    auto announcer_controller_ = std::make_unique<_unnamed::system::network::announcer_controller>("announcer_controller[localhost]");
+    auto announcer1_ = std::make_shared<_unnamed::system::network::announcer>("localhost:8001");
+    auto announcer2_ = std::make_shared<_unnamed::system::network::announcer>("localhost:8002");
+    auto announcer3_ = std::make_shared<_unnamed::system::network::announcer>("localhost:8003");
+    auto announcer4_ = std::make_shared<_unnamed::system::network::announcer>("localhost:8004");
 
-    subject_->subscriber(listener1_);
-    subject_->unsubscriber(listener1_);
-    subject_->subscriber(listener1_);
-    subject_->subscriber(listener2_);
-    subject_->subscriber(listener3_);
-    subject_->subscriber(listener4_);
+    announcer_controller_->add_announcer(announcer1_);
+    announcer_controller_->rem_announcer(announcer1_);
+    announcer_controller_->add_announcer(announcer1_);
+    announcer_controller_->add_announcer(announcer2_);
+    announcer_controller_->add_announcer(announcer3_);
+    announcer_controller_->add_announcer(announcer4_);
 
-    const _unnamed::system::network::t::listener_table_m& listener_adresses_ = subject_->get_listeners();
+    const _unnamed::system::network::t::announcer_table_m& announcer_adresses_ = announcer_controller_->get_announcers();
 
-    std::shared_ptr<listener_handler1> listener_handler1_ = std::make_shared<listener_handler1>();
-    std::shared_ptr<listener_handler2> listener_handler2_ = std::make_shared<listener_handler2>();
+    std::shared_ptr<announcer_handler1> announcer_handler1_ = std::make_shared<announcer_handler1>();
+    std::shared_ptr<announcer_handler2> announcer_handler2_ = std::make_shared<announcer_handler2>();
 
-    for (const auto& listener_pair_ : listener_adresses_) {
-        const std::shared_ptr<_unnamed::system::network::listener>& listener = listener_pair_.second;
+    for (const auto& announcer_pair_ : announcer_adresses_) {
+        const std::shared_ptr<_unnamed::system::network::announcer>& announcer = announcer_pair_.second;
 
-        listener->add_listener_handler(listener_handler1_);
-        listener->add_listener_handler(listener_handler2_);
+        announcer->add_announcer_handler(announcer_handler1_);
+        announcer->add_announcer_handler(announcer_handler2_);
     }
 
-    subject_->notify_all(listener_handler1_);
-    subject_->notify_all(listener_handler2_);
+    announcer_controller_->notify_all(announcer_handler1_);
+    announcer_controller_->notify_all(announcer_handler2_);
 
-    subject_->notify_all(listener_handler1_->get_listener_handler_name(),
-                         [](_unnamed::system::network::subject const* subject,
-                            _unnamed::system::network::listener const* listener,
-    _unnamed::system::network::listener_handler const* listener_handler) {
-        cout << "listener_handler1::invoke?" <<
-             (subject) << ":" <<
-             listener->get_named_id() << ":" <<
-             listener_handler->get_listener_handler_name() << endl;
+    announcer_controller_->notify_all(announcer_handler1_->get_named_id(),
+                                      [](_unnamed::system::network::announcer_controller const* announcer_controller,
+                                         _unnamed::system::network::announcer const* announcer,
+    _unnamed::system::network::announcer_handler const* announcer_handler) {
+        cout << "announcer_handler1::invoke?" <<
+             announcer_controller->get_named_id() << ":" <<
+             announcer->get_named_id() << ":" <<
+             announcer_handler->get_named_id() << endl;
         return true;
     });
-    subject_->notify_all(listener_handler2_->get_listener_handler_name(),
-                         [](const _unnamed::system::network::subject* subject,
-                            const _unnamed::system::network::listener* listener,
-    const _unnamed::system::network::listener_handler* listener_handler) {
-        cout << "listener_handler2::invoke?" <<
-             (subject) << ":" <<
-             listener->get_named_id() << ":" <<
-             listener_handler->get_listener_handler_name() << endl;
+    announcer_controller_->notify_all(announcer_handler2_->get_named_id(),
+                                      [](const _unnamed::system::network::announcer_controller* announcer_controller,
+                                         const _unnamed::system::network::announcer* announcer,
+    const _unnamed::system::network::announcer_handler* announcer_handler) {
+        cout << "announcer_handler2::invoke?" <<
+             announcer_controller->get_named_id() << ":" <<
+             announcer->get_named_id() << ":" <<
+             announcer_handler->get_named_id() << endl;
         return false;
     });
 
-    _unnamed::system::network::t::listener_list_i listeners_faileds_ = subject_->get_listeners_faileds();
+    _unnamed::system::network::t::announcer_list_i announcers_faileds_ = announcer_controller_->get_announcers_faileds();
 
-    for (const auto& listener_failed_ : listeners_faileds_)	{
-        cout << "listener_failed_: " << listener_failed_->get_named_id() << endl;
+    for (const auto& announcer_failed_ : announcers_faileds_)	{
+        cout << "announcer_failed_: " << announcer_failed_->get_named_id() << endl;
     }
 
-    cout << "listener1: " << listener1_.use_count() << endl;
-    cout << "listener2: " << listener2_.use_count() << endl;
-    cout << "listener3: " << listener3_.use_count() << endl;
-    cout << "listener4: " << listener4_.use_count() << endl;
+    cout << "announcer1: " << announcer1_.use_count() << endl;
+    cout << "announcer2: " << announcer2_.use_count() << endl;
+    cout << "announcer3: " << announcer3_.use_count() << endl;
+    cout << "announcer4: " << announcer4_.use_count() << endl;
 
-    cout << "listener_handler1_: " << listener_handler1_.use_count() << endl;
-    cout << "listener_handler2_: " << listener_handler2_.use_count() << endl;
+    cout << "announcer_handler1_: " << announcer_handler1_.use_count() << endl;
+    cout << "announcer_handler2_: " << announcer_handler2_.use_count() << endl;
 
     return 0;
 }
