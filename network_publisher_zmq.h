@@ -52,6 +52,7 @@ namespace t {
 using socket = zmq::socket_t;
 using context = zmq::context_t;
 using const_buffer = zmq::const_buffer;
+using message = zmq::message_t;
 
 /**
  * Mutable and imutable smart shared pointers to objects
@@ -65,10 +66,10 @@ using context_i = std::shared_ptr<const context>;
 using context_m = std::shared_ptr<context>;
 
 using zmq_publisher_handler_sender_i = std::shared_ptr<const zmq_publisher_handler_sender>;
-using zmq_publisher_handler_sender_m = std::shared_ptr<const zmq_publisher_handler_sender>;
+using zmq_publisher_handler_sender_m = std::shared_ptr<zmq_publisher_handler_sender>;
 
 using zmq_publisher_i = std::shared_ptr<const zmq_publisher>;
-using zmq_publisher_m = std::shared_ptr<const zmq_publisher>;
+using zmq_publisher_m = std::shared_ptr<zmq_publisher>;
 
 /**
  * Constant mutable and imutable pointers to objects
@@ -107,30 +108,46 @@ public:
     t::zmq_publisher_mptr get_publisher() const;
 };
 
+typedef struct address_and_port_tag {
+    std::string address;
+    std::string port;
+    explicit address_and_port_tag(const std::string& address, const std::string& port) {
+        this->address = address;
+        this->port = port;
+    }
+
+    std::string to_string() const {
+        return this->address + ":" + this->port;
+    }
+} address_and_port_t;
+
 class zmq_publisher: public publisher {
 private:
     using publisher::publisher;
 
-    std::string _address;
-    std::string _port;
-    t::socket_m _socket;
+    std::list<address_and_port_t> _addresses_and_ports;
 
-    const std::string get_url() const noexcept;
+    t::context_m _context;
+    t::socket_m _socket;
 
     static const std::string make_url(const std::string& address, const std::string& port) noexcept;
 public:
-    explicit zmq_publisher(const std::string& named_id, const std::string& address, const std::string& port) noexcept;
+
+    explicit zmq_publisher(const std::string& named_id, const t::context_m& context) noexcept;
 
     ~zmq_publisher() = default;
 
-    const std::string& get_address() const noexcept;
-
-    const std::string& get_port() const noexcept;
+    const std::string get_addresses_and_ports() const noexcept;
 
     /**
      * @throws zmq::error_t();
      */
-    void bind(const t::context_m& context);
+    void bind(const std::string& address, const std::string& port);
+
+    /**
+     * @throws zmq::error_t();
+     */
+    void bind(const std::list<address_and_port_t>& addresses_and_ports);
 
     /**
      * @throws zmq::error_t();
@@ -148,7 +165,9 @@ public:
 
     void disconnect(std::string const& url);
 
-    void send(const t::const_buffer& topic, const t::const_buffer& data);
+    bool send(t::const_buffer& topic, t::const_buffer& data);
+
+    bool send(t::message& topic, t::message& data);
 };
 } //network
 } //system

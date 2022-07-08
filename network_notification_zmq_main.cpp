@@ -51,17 +51,16 @@ public:
     ~publisher_handler1() = default;
 
     virtual bool do_notify() override {
-        cout << _named_id <<
-             "::invoke? publisher_controller:[" << get_publisher_controller()->get_named_id() <<
-             "]:publisher[" << get_publisher()->get_named_id() <<
-             "]:address[" <<	get_publisher()->get_address() <<
-             "]:port[" << get_publisher()->get_port() <<
-             "]:publisher_handler[" << get_publisher_handler()->get_topic_id() << "]." << endl;
+        /*cout << _named_id <<
+        	"::invoke? publisher_controller:[" << get_publisher_controller()->get_named_id() <<
+        	"]:publisher[" << get_publisher()->get_named_id() <<
+        	"]:" << get_publisher()->get_addresses_and_ports() <<
+        	":publisher_handler[" << get_publisher_handler()->get_topic_id() << "]." << endl;*/
 
         using namespace _unnamed::system::network;
 
         std::string topic{ "topic:angry" };
-        std::string data{ "Dammit, I am {" + get_publisher()->get_named_id() + ":" + get_publisher()->get_port() + "}" };
+        std::string data{ "Dammit, I am {" + get_publisher()->get_named_id() + ":" + get_publisher()->get_addresses_and_ports() + "}" };
 
         get_publisher()->send(t::const_buffer(topic.c_str(), topic.size()), t::const_buffer(data.c_str(), data.size()));
 
@@ -89,17 +88,16 @@ public:
     ~publisher_handler2() = default;
 
     virtual bool do_notify() override {
-        cout << _named_id <<
-             "::invoke? publisher_controller:[" << get_publisher_controller()->get_named_id() <<
-             "]:publisher[" << get_publisher()->get_named_id() <<
-             "]:address[" << get_publisher()->get_address() <<
-             "]:port[" << get_publisher()->get_port() <<
-             "]:publisher_handler[" << get_publisher_handler()->get_topic_id() << "]." << endl;
+        /*cout << _named_id <<
+        	"::invoke? publisher_controller:[" << get_publisher_controller()->get_named_id() <<
+        	"]:publisher[" << get_publisher()->get_named_id() <<
+        	"]:" << get_publisher()->get_addresses_and_ports() <<
+        	":publisher_handler[" << get_publisher_handler()->get_topic_id() << "]." << endl;*/
 
         using namespace _unnamed::system::network;
 
         std::string topic{ "topic:happy" };
-        std::string data{ "Hello, I am {" + get_publisher()->get_named_id() + ":" + get_publisher()->get_port() + "}"};
+        std::string data{ "Hello, I am {" + get_publisher()->get_named_id() + ":" + get_publisher()->get_addresses_and_ports() + "}" };
 
         get_publisher()->send(t::const_buffer(topic.c_str(), topic.size()), t::const_buffer(data.c_str(), data.size()));
 
@@ -204,6 +202,11 @@ void subscriber_task(string phrass, list<string> connect_list, list<string> subs
     subscriber.set(zmq::sockopt::rcvhwm, 1000);
     //subscriber.set(zmq::sockopt::tcp_keepalive, 1);
     subscriber.set(zmq::sockopt::ipv6, 0);
+    //subscriber.set(zmq::sockopt::connect_timeout, 500);
+
+    subscriber.set(zmq::sockopt::curve_publickey, "Yne@$w-vo<fVvi]a<NY6T1ed:M$fCG*[IaLV{hID");//BB88471D65E2659B30C55A5321CEBB5AAB2B70A398645C26DCA2B2FCB43FC518
+    subscriber.set(zmq::sockopt::curve_secretkey, "D:)Q[IlAW!ahhC2ac:9*A}h:p?([4%wOTJ%JR%cs");//7BB864B489AFA3671FBE69101F94B38972F24816DFB01B51656B3FEC8DFD0888
+    subscriber.set(zmq::sockopt::curve_serverkey, "rq:rM>}U?@Lns47E1%kR.o@n%FcmmsL/@{H8]yf7");//54FCBA24E93249969316FB617C872BB0C1D1FF14800427C594CBFACF1BC2D652
 
     try {
         //cout << phrass << "try connect " << connect << endl;
@@ -283,13 +286,13 @@ void subscriber_task(string phrass, list<string> connect_list, list<string> subs
 }
 
 int main(int argc, const char** argv) {
-    auto publisher_controller_ = std::make_unique<_unnamed::system::network::publisher_controller>("publisher_controller[localhost]");
-    auto publisher1_ = std::make_shared<_unnamed::system::network::zmq_publisher>("publisher[1]", "*", "8001");
-    auto publisher2_ = std::make_shared<_unnamed::system::network::zmq_publisher>("publisher[2]", "*", "8002");
-    auto publisher3_ = std::make_shared<_unnamed::system::network::zmq_publisher>("publisher[3]", "*", "8003");
-    auto publisher4_ = std::make_shared<_unnamed::system::network::zmq_publisher>("publisher[4]", "*", "8004");
-
     auto context = std::make_shared<_unnamed::system::network::t::context>(1);
+
+    auto publisher_controller_ = std::make_unique<_unnamed::system::network::publisher_controller>("publisher_controller[localhost]");
+    auto publisher1_ = std::make_shared<_unnamed::system::network::zmq_publisher>("publisher[1]", context);
+    auto publisher2_ = std::make_shared<_unnamed::system::network::zmq_publisher>("publisher[2]", context);
+    auto publisher3_ = std::make_shared<_unnamed::system::network::zmq_publisher>("publisher[3]", context);
+    auto publisher4_ = std::make_shared<_unnamed::system::network::zmq_publisher>("publisher[4]", context);
 
     try {
         publisher1_->close();
@@ -300,10 +303,15 @@ int main(int argc, const char** argv) {
         cout << "Reason >>\n" << ex.what() << endl;
     }
 
-    publisher1_->bind(context);
-    publisher2_->bind(context);
-    publisher3_->bind(context);
-    publisher4_->bind(context);
+    using namespace _unnamed::system::network;
+    //publisher1_->bind({ "*", "*" }, {"8001", "9001"});
+    //publisher1_->bind({ _unnamed::system::network::address_port_t{"*", "8001" }, _unnamed::system::network::address_port_t{ "*", "9001" } });
+    publisher1_->bind({ address_and_port_t{"*", "8001"}, address_and_port_t{"*", "9001"} });
+    //publisher1_->bind({ address_and_port_t{"*", "8002"}, address_and_port_t{"*", "9002"} });
+    //publisher1_->bind({ address_and_port_t{"*", "8001"}, address_and_port_t{"*", "9001"} });
+    publisher2_->bind("*", "8002");
+    publisher3_->bind("*", "8003");
+    publisher4_->bind("*", "8004");
 
     publisher_controller_->add_publisher(publisher1_);
     publisher_controller_->rem_publisher(publisher1_);
@@ -331,7 +339,8 @@ int main(int argc, const char** argv) {
 
     auto subscriber_thread_all = std::make_unique<thread>(subscriber_task,
                                  "subscript[all]: ",
-                                 list<string> { "tcp://localhost:8001", "tcp://localhost:8002", "tcp://localhost:8003", "tcp://localhost:8004" },
+                                 //list<string>{ "tcp://localhost:9001", "tcp://localhost:9002", "tcp://localhost:9003", "tcp://localhost:9004" },
+                                 list<string> { "tcp://localhost:8001", "tcp://localhost:8002", "tcp://localhost:8003", "tcp://localhost:8004", "tcp://localhost:9001" },
                                  //list<string>{ "tcp://localhost:8002;localhost:8001;localhost:8003;localhost:8004" },
                                  list<string> { "" });
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
@@ -374,12 +383,11 @@ int main(int argc, const char** argv) {
         _unnamed::system::network::t::zmq_publisher_mptr publisher_ =
             reinterpret_cast<_unnamed::system::network::t::zmq_publisher_mptr>(publisher);
 
-        cout << "lambda1" << "::do_notify()? " <<
-             "publisher_controller: [" << publisher_controller->get_named_id() <<
-             "]:publisher[" << publisher_->get_named_id() <<
-             "]:address[" << publisher_->get_address() <<
-             "]:port[" << publisher_->get_port() <<
-             "]:publisher_handler[" << publisher_handler->get_topic_id() << "]." << endl;
+        /*cout << "lambda1" << "::do_notify()? " <<
+        	"publisher_controller: [" << publisher_controller->get_named_id() <<
+        	"]:publisher[" << publisher_->get_named_id() <<
+        	"]:" << publisher_->get_addresses_and_ports() <<
+        	":publisher_handler[" << publisher_handler->get_topic_id() << "]." << endl;*/
 
         return true;
     });
@@ -392,12 +400,11 @@ int main(int argc, const char** argv) {
         _unnamed::system::network::t::zmq_publisher_mptr publisher_ =
             reinterpret_cast<_unnamed::system::network::t::zmq_publisher_mptr>(publisher);
 
-        cout << "lambda2" << "::do_notify()? " <<
-             "publisher_controller: [" << publisher_controller->get_named_id() <<
-             "]:publisher[" << publisher_->get_named_id() <<
-             "]:address[" << publisher_->get_address() <<
-             "]:port[" << publisher_->get_port() <<
-             "]:publisher_handler[" << publisher_handler->get_topic_id() << "]." << endl;
+        /*cout << "lambda2" << "::do_notify()? " <<
+        	"publisher_controller: [" << publisher_controller->get_named_id() <<
+        	"]:publisher[" << publisher_->get_named_id() <<
+        	"]:" << publisher_->get_addresses_and_ports() <<
+        	":publisher_handler[" << publisher_handler->get_topic_id() << "]." << endl;*/
 
         return false;
     });

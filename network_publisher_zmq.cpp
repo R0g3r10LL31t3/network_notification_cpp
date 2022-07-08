@@ -48,41 +48,66 @@ t::zmq_publisher_mptr zmq_publisher_handler_sender::get_publisher() const {
     return reinterpret_cast<t::zmq_publisher_mptr>(publisher_handler_sender::get_publisher());
 }
 
-zmq_publisher::zmq_publisher(const std::string& named_id, const std::string& address, const std::string& port) noexcept
-    : publisher(named_id), _address(address), _port(port) {
+zmq_publisher::zmq_publisher(const std::string& named_id, const t::context_m& context) noexcept
+    : publisher(named_id), _context(context) {
 }
 
 const std::string zmq_publisher::make_url(const std::string& address, const std::string& port) noexcept {
     return "tcp://" + address + ":" + port;
 }
 
-const std::string zmq_publisher::get_url() const noexcept {
-    return make_url(this->_address, this->_port);
+const std::string zmq_publisher::get_addresses_and_ports() const noexcept {
+    std::stringstream builder;
+    for (auto _address_and_port : this->_addresses_and_ports) {
+        builder << "[" << _address_and_port.address << ":" << _address_and_port.port << "]";
+    }
+    return builder.str();
 }
 
-const std::string& zmq_publisher::get_address() const noexcept {
-    return this->_address;
-}
-
-const std::string& zmq_publisher::get_port() const noexcept {
-    return this->_port;
-}
-
-void zmq_publisher::bind(const t::context_m& context) {
-    auto socket_ = std::make_unique<t::socket>(*context, zmq::socket_type::pub);
+void zmq_publisher::bind(const std::string& address, const std::string& port) {
+    auto socket_ = std::make_unique<t::socket>(*_context, zmq::socket_type::xpub);
 
     socket_->set(zmq::sockopt::sndhwm, 1000);
     //socket_->set(zmq::sockopt::tcp_keepalive, 1);
+    //socket_->set(zmq::sockopt::heartbeat_ivl, 1);
     socket_->set(zmq::sockopt::ipv6, 0);
     socket_->set(zmq::sockopt::linger, 0);
 
-    socket_->bind(get_url());
+    socket_->set(zmq::sockopt::curve_secretkey, "JTKVSB%%)wK0E.X)V>+}o?pNmC{O&4W4b!Ni{Lh6");//8E0BDD697628B91D8F245587EE95C5B04D48963F79259877B49CD9063AEAD3B7
+    socket_->set(zmq::sockopt::curve_server, 1);
 
+    socket_->bind(make_url(address, port));
+
+    this->_addresses_and_ports.push_back(address_and_port_t{ address, port });
+    this->_socket = std::move(socket_);
+}
+
+void zmq_publisher::bind(const std::list<address_and_port_t>& addresses_and_ports) {
+    auto socket_ = std::make_unique<t::socket>(*_context, zmq::socket_type::xpub);
+
+    socket_->set(zmq::sockopt::sndhwm, 1000);
+    //socket_->set(zmq::sockopt::tcp_keepalive, 1);
+    //socket_->set(zmq::sockopt::heartbeat_ivl, 1);
+    socket_->set(zmq::sockopt::xpub_verbose, 1);
+    socket_->set(zmq::sockopt::ipv6, 0);
+    socket_->set(zmq::sockopt::linger, 0);
+
+    socket_->set(zmq::sockopt::curve_secretkey, "JTKVSB%%)wK0E.X)V>+}o?pNmC{O&4W4b!Ni{Lh6");//8E0BDD697628B91D8F245587EE95C5B04D48963F79259877B49CD9063AEAD3B7
+    socket_->set(zmq::sockopt::curve_server, 1);
+
+    for (auto address_and_port : addresses_and_ports) {
+        socket_->bind(make_url(address_and_port.address, address_and_port.port));
+    }
+
+    this->_addresses_and_ports = addresses_and_ports;
+    //auto destroy old connections, see zmq::socket_t and see zmq::socket_base_t
     this->_socket = std::move(socket_);
 }
 
 void zmq_publisher::unbind(const std::string& address, const std::string& port) {
-    this->unbind(make_url(address, port));
+    if (this->_socket) {
+        this->unbind(make_url(address, port));
+    }
 }
 
 void zmq_publisher::unbind(const std::string& url) {
@@ -98,16 +123,31 @@ void zmq_publisher::close() noexcept {
 }
 
 bool zmq_publisher::connected() const noexcept {
-    return this->_socket->connected();
+    return this->_socket? this->_socket->connected(): false;
 }
 
 void zmq_publisher::disconnect(std::string const& url) {
-    this->_socket->disconnect(url);
+    if (this->_socket) {
+        this->_socket->disconnect(url);
+    }
 }
 
-void zmq_publisher::send(const t::const_buffer& topic, const t::const_buffer& data) {
+bool zmq_publisher::send(t::const_buffer& topic, t::const_buffer& data) {
+    bool has_value_topic_ = false;
+    bool has_value_data_ = false;
     if (this->_socket) {
-        this->_socket->send(topic, zmq::send_flags::sndmore);
-        this->_socket->send(data, zmq::send_flags::none);
+        has_value_topic_ = this->_socket->send(topic, zmq::send_flags::sndmore).has_value();
+        has_value_data_ = this->_socket->send(data, zmq::send_flags::none).has_value();
     }
+    return has_value_topic_ && has_value_data_;
+}
+
+bool zmq_publisher::send(t::message& topic, t::message& data) {
+    bool has_value_topic_ = false;
+    bool has_value_data_ = false;
+    if (this->_socket) {
+        has_value_topic_ = this->_socket->send(topic, zmq::send_flags::sndmore).has_value();
+        has_value_data_ = this->_socket->send(data, zmq::send_flags::none).has_value();
+    }
+    return has_value_topic_ && has_value_data_;
 }
