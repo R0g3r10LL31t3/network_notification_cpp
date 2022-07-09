@@ -60,7 +60,7 @@ public:
         using namespace _unnamed::system::network;
 
         std::string topic{ "topic:angry" };
-        std::string data{ "Dammit, I am {" + get_publisher()->get_named_id() + ":" + get_publisher()->get_addresses_and_ports() + "}" };
+        std::string data{ "Dammit, I am {" + get_publisher()->get_named_id() + ":" + get_publisher()->to_string() + "}" };
 
         get_publisher()->send(t::const_buffer(topic.c_str(), topic.size()), t::const_buffer(data.c_str(), data.size()));
 
@@ -97,7 +97,7 @@ public:
         using namespace _unnamed::system::network;
 
         std::string topic{ "topic:happy" };
-        std::string data{ "Hello, I am {" + get_publisher()->get_named_id() + ":" + get_publisher()->get_addresses_and_ports() + "}" };
+        std::string data{ "Hello, I am {" + get_publisher()->get_named_id() + ":" + get_publisher()->to_string() + "}" };
 
         get_publisher()->send(t::const_buffer(topic.c_str(), topic.size()), t::const_buffer(data.c_str(), data.size()));
 
@@ -304,6 +304,7 @@ int main(int argc, const char** argv) {
     }
 
     using namespace _unnamed::system::network;
+    using address_and_port_t = zmq_publisher::address_and_port_t;
     //publisher1_->bind({ "*", "*" }, {"8001", "9001"});
     //publisher1_->bind({ _unnamed::system::network::address_port_t{"*", "8001" }, _unnamed::system::network::address_port_t{ "*", "9001" } });
     publisher1_->bind({ address_and_port_t{"*", "8001"}, address_and_port_t{"*", "9001"} });

@@ -52,6 +52,7 @@ namespace t {
 using socket = zmq::socket_t;
 using context = zmq::context_t;
 using mutable_buffer = zmq::mutable_buffer;
+using message = zmq::message_t;
 
 /**
  * Mutable and imutable smart shared pointers to objects
@@ -108,29 +109,39 @@ public:
 };
 
 class zmq_subscriber: public subscriber {
+public:
+    typedef struct address_and_port_tag {
+        std::string address;
+        std::string port;
+        explicit address_and_port_tag(const std::string& address, const std::string& port) noexcept;
+
+        std::string to_string() const noexcept;
+    } address_and_port_t;
 private:
     using subscriber::subscriber;
 
-    std::string _address;
-    std::string _port;
-    t::socket_m _socket;
+    std::list<address_and_port_t> _addresses_and_ports;
 
-    const std::string get_url() const noexcept;
+    t::context_m _context;
+    t::socket_m _socket;
 
     static const std::string make_url(const std::string& address, const std::string& port) noexcept;
 public:
-    explicit zmq_subscriber(const std::string& topic_id, const std::string& address, const std::string& port) noexcept;
+    explicit zmq_subscriber(const std::string& named_id, const t::context_m& context) noexcept;
 
     ~zmq_subscriber() = default;
 
-    const std::string& get_address() const noexcept;
-
-    const std::string& get_port() const noexcept;
+    const std::string to_string() const noexcept;
 
     /**
      * @throws zmq::error_t();
      */
-    void bind(const t::context_m& context);
+    void connect(const std::string& address, const std::string& port);
+
+    /**
+     * @throws zmq::error_t();
+     */
+    void connect(const std::list<address_and_port_t>& addresses_and_ports);
 
     /**
      * @throws zmq::error_t();
@@ -148,7 +159,9 @@ public:
 
     void disconnect(std::string const& url);
 
-    void receive(t::mutable_buffer& topic, t::mutable_buffer& data);
+    bool receive(t::mutable_buffer& topic, t::mutable_buffer& data);
+
+    bool receive(t::message& topic, t::message& data);
 };
 } //network
 } //system

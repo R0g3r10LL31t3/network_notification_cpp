@@ -108,20 +108,21 @@ public:
     t::zmq_publisher_mptr get_publisher() const;
 };
 
-typedef struct address_and_port_tag {
-    std::string address;
-    std::string port;
-    explicit address_and_port_tag(const std::string& address, const std::string& port) {
-        this->address = address;
-        this->port = port;
-    }
-
-    std::string to_string() const {
-        return this->address + ":" + this->port;
-    }
-} address_and_port_t;
 
 class zmq_publisher: public publisher {
+public:
+    typedef struct address_and_port_tag {
+        std::string address;
+        std::string port;
+        explicit address_and_port_tag(const std::string& address, const std::string& port) {
+            this->address = address;
+            this->port = port;
+        }
+
+        std::string to_string() const {
+            return this->address + ":" + this->port;
+        }
+    } address_and_port_t;
 private:
     using publisher::publisher;
 
@@ -137,7 +138,7 @@ public:
 
     ~zmq_publisher() = default;
 
-    const std::string get_addresses_and_ports() const noexcept;
+    const std::string to_string() const noexcept;
 
     /**
      * @throws zmq::error_t();

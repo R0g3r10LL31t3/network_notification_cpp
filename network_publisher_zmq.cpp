@@ -36,6 +36,20 @@
 
 using namespace _unnamed::system::network;
 
+typedef struct curve_server_tag {
+    static const std::string server_private_key;
+    static const int is_server;
+} curve_server_t;
+
+/**
+ * TODO: Remove this when you have a configuration environment
+ * Theses keys are available at <http ://api.zeromq.org/master:zmq-curve>
+ * Warning: never put private keys and sensitive data in the final application code.
+ */
+//8E0BDD697628B91D8F245587EE95C5B04D48963F79259877B49CD9063AEAD3B7 or z85 bellow
+const std::string curve_server_tag::server_private_key = "JTKVSB%%)wK0E.X)V>+}o?pNmC{O&4W4b!Ni{Lh6";
+const int curve_server_tag::is_server = 1;
+
 zmq_publisher_handler_sender::zmq_publisher_handler_sender()
     : publisher_handler_sender() {
 }
@@ -56,7 +70,7 @@ const std::string zmq_publisher::make_url(const std::string& address, const std:
     return "tcp://" + address + ":" + port;
 }
 
-const std::string zmq_publisher::get_addresses_and_ports() const noexcept {
+const std::string zmq_publisher::to_string() const noexcept {
     std::stringstream builder;
     for (auto _address_and_port : this->_addresses_and_ports) {
         builder << "[" << _address_and_port.address << ":" << _address_and_port.port << "]";
@@ -73,17 +87,18 @@ void zmq_publisher::bind(const std::string& address, const std::string& port) {
     socket_->set(zmq::sockopt::ipv6, 0);
     socket_->set(zmq::sockopt::linger, 0);
 
-    socket_->set(zmq::sockopt::curve_secretkey, "JTKVSB%%)wK0E.X)V>+}o?pNmC{O&4W4b!Ni{Lh6");//8E0BDD697628B91D8F245587EE95C5B04D48963F79259877B49CD9063AEAD3B7
-    socket_->set(zmq::sockopt::curve_server, 1);
+    socket_->set(zmq::sockopt::curve_server, curve_server_t::is_server);
+    socket_->set(zmq::sockopt::curve_secretkey, curve_server_t::server_private_key);
 
     socket_->bind(make_url(address, port));
 
     this->_addresses_and_ports.push_back(address_and_port_t{ address, port });
+    this->close();
     this->_socket = std::move(socket_);
 }
 
 void zmq_publisher::bind(const std::list<address_and_port_t>& addresses_and_ports) {
-    auto socket_ = std::make_unique<t::socket>(*_context, zmq::socket_type::xpub);
+    auto socket_ = std::make_unique<t::socket>(*_context, zmq::socket_type::pub);
 
     socket_->set(zmq::sockopt::sndhwm, 1000);
     //socket_->set(zmq::sockopt::tcp_keepalive, 1);
@@ -92,15 +107,16 @@ void zmq_publisher::bind(const std::list<address_and_port_t>& addresses_and_port
     socket_->set(zmq::sockopt::ipv6, 0);
     socket_->set(zmq::sockopt::linger, 0);
 
-    socket_->set(zmq::sockopt::curve_secretkey, "JTKVSB%%)wK0E.X)V>+}o?pNmC{O&4W4b!Ni{Lh6");//8E0BDD697628B91D8F245587EE95C5B04D48963F79259877B49CD9063AEAD3B7
-    socket_->set(zmq::sockopt::curve_server, 1);
+    socket_->set(zmq::sockopt::curve_server, curve_server_t::is_server);
+    socket_->set(zmq::sockopt::curve_secretkey, curve_server_t::server_private_key);
 
     for (auto address_and_port : addresses_and_ports) {
         socket_->bind(make_url(address_and_port.address, address_and_port.port));
     }
 
     this->_addresses_and_ports = addresses_and_ports;
-    //auto destroy old connections, see zmq::socket_t and see zmq::socket_base_t
+    //auto destroy old socket, see zmq::socket_t and see zmq::socket_base_t
+    this->close();
     this->_socket = std::move(socket_);
 }
 
